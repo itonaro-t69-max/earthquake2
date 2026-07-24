@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>地震と防災：ファクト参照チェックツール v5.1</title>
+  <style>
+    /* --- カラーユニバーサルデザイン（CUD）対応 --- */
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #222222;
+      --text-sub: #555555;
+      
+      --primary: #005ab5;
+      --primary-hover: #004085;
+      --accent: #FF4B00;
+      --success: #03AF7A;
+      
+      --border-color: #cccccc;
+      --disabled-bg: #e9ecef;
+      --disabled-text: #888888;
+
+      --hint-bg: #FFF5D6;
+      --hint-border: #F6AA00;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    }
+
+    /* マルチデバイス対応：スクロールはみ出し防止＆中央配置 */
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh; /* 古いブラウザ用のフォールバック */
+      min-height: 100dvh; /* スマホUIバー対応 */
+      padding: 16px;
+      line-height: 1.6;
+    }
+    
+    /* 演出中のスクロールロック用 */
+    body.no-scroll {
+      overflow: hidden;
+    }
+
+    .container {
+      margin: auto;
+      width: 100%;
+      max-width: 800px;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      padding: 32px 24px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .version-tag {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 0.85rem;
+      color: #999;
+      font-weight: bold;
+    }
+
+    .submit-btn {
+      width: 100%;
+      max-width: 320px;
+      padding: 16px 24px;
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: var(--primary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      margin: 0 auto;
+      display: block;
+      min-height: 56px;
+    }
+    .submit-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    .submit-btn:disabled {
+      background-color: var(--disabled-text);
+      cursor: not-allowed;
+    }
+    .submit-btn:not(:disabled):hover {
+      background-color: var(--primary-hover);
+    }
+
+    /* --- ホーム画面・チュートリアル画面 --- */
+    .center-screen {
+      text-align: center;
+    }
+    .main-title {
+      font-size: 2.2rem;
+      color: var(--primary);
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .sub-title {
+      font-size: 1.1rem;
+      color: var(--text-sub);
+      margin-bottom: 32px;
+    }
+    .hero-icon {
+      font-size: 5rem;
+      margin-bottom: 24px;
+    }
+    
+    .tutorial-box {
+      background-color: #fafafa;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 32px;
+      text-align: left;
+    }
+    .tutorial-box h3 {
+      color: var(--primary);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .tutorial-list {
+      list-style: none;
+      margin: 16px 0;
+    }
+    .tutorial-list li {
+      margin-bottom: 16px;
+      font-size: 1.05rem;
+    }
+    .badge {
+      display: inline-block;
+      background-color: var(--primary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-right: 8px;
+    }
+    .tutorial-warning {
+      background-color: var(--hint-bg);
+      border: 2px solid var(--hint-border);
+      padding: 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: var(--text-main);
+      text-align: left;
+      margin-top: 20px;
+    }
+
+    /* --- クイズ画面 --- */
+    header {
+      margin-bottom: 24px;
+    }
+    .app-title-small {
+      font-size: 1.1rem;
+      color: var(--text-sub);
+      font-weight: bold;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      max-width: 400px;
+      margin: 0 auto 24px auto;
+    }
+    .progress-steps::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background-color: var(--border-color);
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+    .step-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--disabled-bg);
+      color: var(--disabled-text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      z-index: 2;
+      border: 3px solid var(--card-bg);
+      transition: all 0.3s ease;
+    }
+    .step-icon.active {
+      background-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(0, 90, 181, 0.2);
+    }
+    .step-icon.cleared {
+      background-color: var(--success);
+      color: #fff;
+    }
+    .step-icon.locked {
+      background-color: var(--border-color);
+      color: #ffffff;
+      font-size: 1rem;
+    }
+
+    .question-title {
+      font-size: 1.15rem;
+      font-weight: bold;
+      margin-bottom: 24px;
+      background-color: #eef5ff;
+      padding: 16px;
+      border-left: 6px solid var(--primary);
+      border-radius: 4px;
+    }
+
+    .lock-interactions {
+      pointer-events: none;
+    }
+
+    .step-box {
+      margin-bottom: 24px;
+      padding: 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background-color: #fafafa;
+      transition: opacity 0.3s;
+    }
+    .step-box.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+      background-color: var(--disabled-bg);
+    }
+    .step-label {
+      display: inline-block;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #ffffff;
+      background-color: var(--primary);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .step-instruction {
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .options-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      padding: 16px;
+      font-size: 1.05rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background-color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .option-btn:hover {
+      border-color: var(--primary);
+      background-color: #f0f7ff;
+    }
+    .option-btn.selected {
+      border-color: var(--primary);
+      background-color: #e2f0ff;
+      font-weight: bold;
+      padding-left: 24px;
+    }
+    .option-btn.selected::before {
+      content: "";
+      position: absolute;
+      left: -2px;
+      top: -2px;
+      bottom: -2px;
+      width: 8px;
+      background-color: var(--primary);
+      border-radius: 8px 0 0 8px;
+    }
+
+    .action-area {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .feedback-msg {
+      font-size: 1.2rem;
+      font-weight: bold;
+      min-height: 30px;
+      text-align: center;
+      transition: opacity 0.2s;
+    }
+    .feedback-msg.error {
+      color: var(--accent);
+    }
+    .hint-msg {
+      background-color: var(--hint-bg);
+      color: var(--text-main);
+      border: 2px solid var(--hint-border);
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 1rem;
+      width: 100%;
+      text-align: left;
+      display: none;
+      white-space: pre-wrap;
+      font-weight: bold;
+    }
+
+    /* --- 派手な正解演出用ポップアップ --- */
+    .success-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+    .success-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .success-content {
+      text-align: center;
+      transform: scale(0.5);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .success-overlay.show .success-content {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .success-icon {
+      font-size: 6rem;
+      margin-bottom: 16px;
+      animation: bounce 1.5s infinite;
+    }
+    .success-text {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: var(--success);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      line-height: 1.3;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    /* --- クリア画面 --- */
+    .clear-title {
+      font-size: 2.2rem;
+      color: var(--success);
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+    .code-box {
+      background-color: #f0f4f8;
+      border: 2px dashed var(--primary);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 16px 0;
+    }
+    .code-label {
+      font-size: 1.1rem;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .code-val {
+      font-size: 3rem;
+      font-weight: bold;
+      color: var(--primary);
+      letter-spacing: 4px;
+    }
+    .bonus-btn {
+      background-color: #ffffff;
+      color: var(--text-sub);
+      border: 2px solid var(--border-color);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 16px;
+    }
+    .bonus-btn:hover {
+      border-color: var(--text-main);
+      background-color: #f4f6f8;
+      color: var(--text-main);
+    }
+
+    /* モーダル */
+    .modal {
+      display: none;
+      position: fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal-content {
+      background: white;
+      padding: 32px 24px;
+      border-radius: 12px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90dvh;
+      overflow-y: auto;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    #bonus-feedback {
+      margin-top: 16px;
+      font-weight: bold;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+      text-align: left;
+      font-size: 1.05rem;
+    }
+    #bonus-feedback.correct {
+      background-color: #E6F7F2;
+      color: var(--success);
+      border: 2px solid var(--success);
+    }
+    #bonus-feedback.error {
+      background-color: #FFEFEA;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .close-btn {
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: var(--text-sub);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    /* --- メディアクエリ（スマホ向けの微調整） --- */
+    @media (max-width: 600px) {
+      .container {
+        padding: 24px 16px;
+      }
+      .main-title {
+        font-size: 1.8rem;
+      }
+      .question-title {
+        font-size: 1.05rem;
+      }
+      .option-btn {
+        font-size: 0.95rem;
+      }
+      .clear-title {
+        font-size: 1.8rem;
+      }
+      .code-val {
+        font-size: 2.4rem;
+      }
+      .success-icon {
+        font-size: 5rem;
+      }
+      .success-text {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="version-tag">v5.1</div>
+    
+    <!-- 1. ホーム画面 -->
+    <div id="home-screen" class="center-screen">
+      <div class="hero-icon">📖 🔍</div>
+      <h1 class="main-title">地震と防災<br>ファクト参照ツール</h1>
+      <p class="sub-title">教科書のデータや図表（ファクト）から、<br>論理的に答えを導き出そう。</p>
+      <button type="button" class="submit-btn" id="to-tutorial-btn">はじめる</button>
+    </div>
+
+    <!-- 2. チュートリアル画面 -->
+    <div id="tutorial-screen" class="center-screen" style="display: none;">
+      <h2 class="main-title" style="font-size: 1.8rem;">このアプリの使い方</h2>
+      
+      <div class="tutorial-box">
+        <h3>2段階認証（2-Step Lock）</h3>
+        <p>このツールでは、勘で答えることはできません。<br>必ず以下の2つのステップを順番にクリアしてください。</p>
+        
+        <ul class="tutorial-list">
+          <li><span class="badge">STEP 1</span> 教科書の<strong>「どの図や文章」</strong>を見ればわかるか（根拠）を選ぶ</li>
+          <li><span class="badge">STEP 2</span> その根拠をもとに、<strong>「正しい理由・条件」</strong>を選ぶ</li>
+        </ul>
+
+        <div class="tutorial-warning">
+          <div style="font-size: 1.2rem; margin-bottom: 8px;">🔒 順番にロックを解除しよう！</div>
+          2つのステップを両方正解しないと、次の問題のロックは解除されません（先へ進めません）。<br>間違えても教科書のヒントが出るので、じっくり調べよう。
+        </div>
+      </div>
+      
+      <button type="button" class="submit-btn" id="start-quiz-btn">理解した（問題を始める）</button>
+    </div>
+
+    <!-- 3. クイズ画面 -->
+    <main id="quiz-screen" style="display: none;">
+      <header>
+        <div class="app-title-small">中学校理科：地震と防災</div>
+        <div class="progress-steps" id="progress-steps"></div>
+      </header>
+
+      <div class="question-title" id="q-title" aria-live="polite"></div>
+
+      <!-- 操作ロック用ラッパー -->
+      <div id="quiz-interactive-area">
+        <div class="step-box" id="step1-box">
+          <span class="step-label">STEP 1（根拠指定）</span>
+          <div class="step-instruction">教科書のどの図表・本文を見れば根拠がわかりますか？</div>
+          <div class="options-group" id="step1-options"></div>
+        </div>
+
+        <div class="step-box disabled" id="step2-box">
+          <span class="step-label">STEP 2（解答選択）</span>
+          <div class="step-instruction">根拠に基づいて正しい理由・条件を選んでください。</div>
+          <div class="options-group" id="step2-options"></div>
+        </div>
+      </div>
+
+      <!-- アクションとフィードバック (aria-liveで読み上げ対応) -->
+      <div class="action-area" aria-live="polite">
+        <button type="button" class="submit-btn" id="submit-btn" disabled>回答を確定する</button>
+        <div class="feedback-msg" id="feedback-msg"></div>
+        <div class="hint-msg" id="hint-msg"></div>
+      </div>
+    </main>
+
+    <!-- 4. クリア画面 -->
+    <div id="clear-screen" class="center-screen" style="display: none;">
+      <div class="clear-title">🔓 ALL CLEAR!<br>知識認証完了</div>
+      <p style="font-weight: bold; margin-bottom: 24px; font-size: 1.1rem;">すべてのロックが解除されました！</p>
+
+      <div class="tutorial-box" style="margin: 0 auto 24px auto; max-width: 550px; text-align: center; border-color: var(--primary);">
+        <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1.4rem;">次のステップ：AIとペア学習！</h3>
+        <p style="margin-bottom: 12px; text-align: left; font-size: 1rem; line-height: 1.6;">
+          ここからはAIを相手に学習を進めます。<br>
+          AIはわざと<strong>間違ったこと</strong>を言います。このツールで確認した「ファクト（事実）」を使って、AIを論理的に説得（論破）してください。
+        </p>
+        
+        <div class="code-box">
+          <div class="code-label">ペア学習（AIチャット）接続コード</div>
+          <div class="code-val">8510-P</div>
+        </div>
+
+        <p style="font-weight: bold; font-size: 1.15rem; color: var(--accent);">
+          AIチャットに接続できたら<br>「スタート」と入力して始めよう！
+        </p>
+      </div>
+
+      <button type="button" class="bonus-btn" id="bonus-btn">ボーナス問題に挑戦する（時間がある人用）</button>
+    </div>
+
+  </div>
+
+  <!-- 正解時の派手な演出用オーバーレイ -->
+  <div id="success-overlay" class="success-overlay" aria-hidden="true">
+    <div class="success-content">
+      <div class="success-icon">🔓</div>
+      <div class="success-text">大正解！<br>ロック解除</div>
+    </div>
+  </div>
+
+  <!-- ボーナス問題モーダル -->
+  <div class="modal" id="bonus-modal">
+    <div class="modal-content">
+      <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1.5rem;">【ボーナス問題】</h3>
+      <p style="margin-bottom: 24px; text-align: left; font-size: 1.1rem; line-height: 1.6; font-weight: bold;">
+        問い：緊急地震速報が届いてから主要動が来るまでの数秒〜数十秒間に、私たちが最初に行うべき行動（身を守る姿勢）として最も適切なものはどれか？
+      </p>
+      
+      <div class="options-group" id="bonus-options">
+        <button type="button" class="option-btn">A. まず頭を守り、机の下などに入って低く身構える</button>
+        <button type="button" class="option-btn">B. 慌てて屋外へ飛び出す</button>
+        <button type="button" class="option-btn">C. 揺れている最中にコンロの火を消しに行く</button>
+      </div>
+
+      <div id="bonus-feedback" aria-live="polite"></div>
+
+      <button type="button" class="close-btn" id="close-modal-btn">閉じる</button>
+    </div>
+  </div>
+
+  <script>
+    // 選択肢のページ数・図表番号を指示に合わせて完全に修正
+    const quizData = [
+      {
+        title: "【第1問】震源距離が長いほど、初期微動継続時間が長くなるのはなぜか？",
+        step1: [
+          { text: "A. p.74 図11", correct: false },
+          { text: "B. p.76 図14", correct: true },
+          { text: "C. p.77 図16", correct: false }
+        ],
+        step2: [
+          { text: "A. P波のスピードが途中で遅くなるためである。", correct: false },
+          { text: "B. P波とS波は伝わる速さがちがっていて、震源距離が長いほど届く時間の差が大きくなるためである。", correct: true },
+          { text: "C. 震源から遠いとS波しか届かなくなるためである。", correct: false }
+        ],
+        hint: "💡 ヒント：教科書p.77の本文を確認しよう。\n「P波とS波は、震源から同時に伝わりはじめるが、伝わる速さがちがっていて…」"
+      },
+      {
+        title: "【第2問】震央からの距離がほぼ同じなのに、ゆれの大きさが異なることがあるのはなぜか？",
+        step1: [
+          { text: "A. p.78 図17", correct: false },
+          { text: "B. p.79 図19", correct: true },
+          { text: "C. p.78 図18", correct: false }
+        ],
+        step2: [
+          { text: "A. 震央からの距離が遠くなるほど、マグニチュードが小さくなるためである。", correct: false },
+          { text: "B. 観測地点によって、地震計の性能が異なるためである。", correct: false },
+          { text: "C. 大地をつくる岩石などのかたさやつくりにちがいがあるためである。", correct: true }
+        ],
+        hint: "💡 ヒント：教科書p.79の図19と本文を確認しよう。\n「…大地をつくる岩石などのかたさやつくりなどのちがいによって、震央から近いところより大きな震度になることがある。」"
+      },
+      {
+        title: "【第3問】内陸の活断層で起こる地震について、マグニチュードが小さくても直上の地表が激しくゆれることがある。それはどのような条件のときか？",
+        step1: [
+          { text: "A. p.81 図22", correct: false },
+          { text: "B. p.82 図24", correct: false },
+          { text: "C. p.82の本文後半", correct: true }
+        ],
+        step2: [
+          { text: "A. 震源の深さが非常に深いとき", correct: false },
+          { text: "B. 震源の深さが浅いとき", correct: true },
+          { text: "C. 震源が海域にあり、津波をともなうとき", correct: false }
+        ],
+        hint: "💡 ヒント：教科書p.82の本文後半を確認しよう。\n「内陸では…マグニチュードが小さくても、震源の深さが浅ければ、直上の地表は大きくゆれ、大きな被害をもたらすことがある。」"
+      },
+      {
+        title: "【第4問】震度が小さくても津波に警戒が必要なのはどのようなときか？",
+        step1: [
+          { text: "A. p.81 図23", correct: false },
+          { text: "B. p.82 図25", correct: true },
+          { text: "C. p.83 津波避難タワーなどの写真", correct: false }
+        ],
+        step2: [
+          { text: "A. 陸地の震度が5以上で、雨が降っているとき", correct: false },
+          { text: "B. 震源が浅く、震央が海域にあるとき", correct: true },
+          { text: "C. 震源が陸地で深く、P波だけが届いたとき", correct: false }
+        ],
+        hint: "💡 ヒント：教科書p.82の図25と本文を確認しよう。\n「大規模かつ急激な海底の上下の変形などによって、震源が浅く、震央が海域にある地震は、津波が発生しやすい。」"
+      }
+    ];
+
+    // --- 画面遷移の制御 ---
+    const screens = {
+      home: document.getElementById('home-screen'),
+      tutorial: document.getElementById('tutorial-screen'),
+      quiz: document.getElementById('quiz-screen'),
+      clear: document.getElementById('clear-screen')
+    };
+
+    function showScreen(screenName) {
+      Object.values(screens).forEach(screen => {
+        screen.style.display = 'none';
+      });
+      screens[screenName].style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById('to-tutorial-btn').onclick = () => showScreen('tutorial');
+    document.getElementById('start-quiz-btn').onclick = () => {
+      showScreen('quiz');
+      initProgressSteps();
+      loadQuestion(0);
+    };
+
+    // --- クイズのロジック ---
+    let currentIdx = 0;
+    let selectedStep1 = null;
+    let selectedStep2 = null;
+
+    const progressStepsContainer = document.getElementById('progress-steps');
+    const qTitle = document.getElementById('q-title');
+    const quizInteractiveArea = document.getElementById('quiz-interactive-area');
+    const step1Box = document.getElementById('step1-box');
+    const step2Box = document.getElementById('step2-box');
+    const step1Options = document.getElementById('step1-options');
+    const step2Options = document.getElementById('step2-options');
+    const submitBtn = document.getElementById('submit-btn');
+    const feedbackMsg = document.getElementById('feedback-msg');
+    const hintMsg = document.getElementById('hint-msg');
+    const successOverlay = document.getElementById('success-overlay');
+
+    function initProgressSteps() {
+      progressStepsContainer.innerHTML = '';
+      quizData.forEach((_, idx) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'step-icon locked';
+        stepDiv.textContent = '🔒';
+        progressStepsContainer.appendChild(stepDiv);
+      });
+    }
+
+    function updateProgress(index) {
+      const steps = progressStepsContainer.children;
+      Array.from(steps).forEach((step, i) => {
+        if (i < index) {
+          step.className = 'step-icon cleared';
+          step.textContent = '✓'; 
+        } else if (i === index) {
+          step.className = 'step-icon active';
+          step.textContent = i + 1; 
+        } else {
+          step.className = 'step-icon locked';
+          step.textContent = '🔒'; 
+        }
+      });
+    }
+
+    function loadQuestion(index) {
+      selectedStep1 = null;
+      selectedStep2 = null;
+      
+      quizInteractiveArea.classList.remove('lock-interactions');
+      
+      feedbackMsg.textContent = "";
+      feedbackMsg.className = "feedback-msg";
+      hintMsg.style.display = "none";
+      submitBtn.disabled = true;
+
+      updateProgress(index);
+
+      const data = quizData[index];
+      qTitle.textContent = data.title;
+
+      step1Options.innerHTML = "";
+      data.step1.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option-btn';
+        btn.textContent = opt.text;
+        btn.onclick = () => selectStep1(idx);
+        step1Options.appendChild(btn);
+      });
+
+      step2Options.innerHTML = "";
+      data.step2.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option-btn';
+        btn.textContent = opt.text;
+        btn.onclick = () => selectStep2(idx);
+        step2Options.appendChild(btn);
+      });
+
+      step2Box.classList.add('disabled');
+      window.scrollTo(0, 0); 
+    }
+
+    function selectStep1(idx) {
+      selectedStep1 = idx;
+      Array.from(step1Options.children).forEach((btn, i) => {
+        btn.classList.toggle('selected', i === idx);
+      });
+      step2Box.classList.remove('disabled');
+      checkCanSubmit();
+      hideHint();
+    }
+
+    function selectStep2(idx) {
+      selectedStep2 = idx;
+      Array.from(step2Options.children).forEach((btn, i) => {
+        btn.classList.toggle('selected', i === idx);
+      });
+      checkCanSubmit();
+      hideHint();
+    }
+
+    function checkCanSubmit() {
+      submitBtn.disabled = (selectedStep1 === null || selectedStep2 === null);
+    }
+
+    function hideHint() {
+      feedbackMsg.textContent = "";
+      feedbackMsg.className = "feedback-msg";
+      hintMsg.style.display = "none";
+    }
+
+    function playSuccessAnimation() {
+      successOverlay.classList.add('show');
+      document.body.classList.add('no-scroll'); // 背景スクロール防止
+      
+      setTimeout(() => {
+        successOverlay.classList.remove('show');
+        document.body.classList.remove('no-scroll');
+        
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+          loadQuestion(currentIdx);
+        } else {
+          showScreen('clear');
+        }
+      }, 2000);
+    }
+
+    submitBtn.onclick = () => {
+      const data = quizData[currentIdx];
+      const isStep1Correct = data.step1[selectedStep1].correct;
+      const isStep2Correct = data.step2[selectedStep2].correct;
+
+      if (isStep1Correct && isStep2Correct) {
+        submitBtn.disabled = true;
+        quizInteractiveArea.classList.add('lock-interactions');
+        playSuccessAnimation();
+        
+      } else {
+        feedbackMsg.textContent = "❌ 不正解！根拠と解答を見直そう。";
+        feedbackMsg.className = "feedback-msg error";
+        hintMsg.innerText = data.hint;
+        hintMsg.style.display = "block";
+      }
+    };
+
+    // --- ボーナス問題の制御 ---
+    const bonusBtn = document.getElementById('bonus-btn');
+    const bonusModal = document.getElementById('bonus-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const bonusFeedback = document.getElementById('bonus-feedback');
+    const bonusOptionBtns = document.querySelectorAll('#bonus-options .option-btn');
+
+    const bonusAnswers = [
+      { correct: true, msg: "⭕ 正解！\nまず頭を守り、低く身構える姿勢（シェイクアウト構造）が最優先です。" },
+      { correct: false, msg: "❌ 不正解！\n揺れの中で慌てて外に飛び出すのは、落下物などのリスクがあり危険です。" },
+      { correct: false, msg: "❌ 不正解！\n大きな揺れの中で火を消しに行くのは火傷のリスクがあります。揺れが収まってから消火しましょう。" }
+    ];
+
+    bonusBtn.onclick = () => {
+      bonusModal.style.display = 'flex';
+      document.body.classList.add('no-scroll'); // モーダル展開時のスクロール防止
+    };
+
+    closeModalBtn.onclick = () => {
+      bonusModal.style.display = 'none';
+      document.body.classList.remove('no-scroll');
+      bonusOptionBtns.forEach(b => b.classList.remove('selected'));
+      bonusFeedback.style.display = 'none';
+    };
+
+    bonusOptionBtns.forEach((btn, idx) => {
+      btn.onclick = () => {
+        bonusOptionBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+
+        bonusFeedback.style.display = 'block';
+        bonusFeedback.innerText = bonusAnswers[idx].msg;
+        if(bonusAnswers[idx].correct) {
+          bonusFeedback.className = 'correct';
+        } else {
+          bonusFeedback.className = 'error';
+        }
+      };
+    });
+  </script>
+</body>
+</html>
